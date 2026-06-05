@@ -8,15 +8,11 @@ const Post = sequelize.define('Post', {
     primaryKey: true,
     autoIncrement: true,
   },
-  title: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
   content: {
     type: DataTypes.TEXT,
     allowNull: false,
   },
-  userId: {
+  authorId: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
@@ -29,7 +25,7 @@ const Post = sequelize.define('Post', {
   tableName: 'posts',
 });
 
-Post.belongsTo(User, { foreignKey: 'userId' });
-User.hasMany(Post, { foreignKey: 'userId' });
+Post.belongsTo(User, { foreignKey: 'authorId' });
+User.hasMany(Post, { foreignKey: 'authorId' });
 
 module.exports = Post;

@@ -3,13 +3,12 @@ const User = require('../models/User');
 
 const createPost = async (req, res) => {
   try {
-    const { title, content } = req.body;
-    const userId = req.user.id;
+    const { content } = req.body;
+    const authorId = req.user.id;
 
     const post = await Post.create({
-      title,
       content,
-      userId,
+      authorId,
     });
 
     res.status(201).json({ message: 'Post berhasil dibuat', post });
@@ -24,7 +23,7 @@ const getAllPosts = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['id', 'username', 'email'],
+          attributes: ['id', 'name', 'email'],
         },
       ],
     });
@@ -43,7 +42,7 @@ const getPostById = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ['id', 'username', 'email'],
+          attributes: ['id', 'name', 'email'],
         },
       ],
     });
@@ -61,19 +60,19 @@ const getPostById = async (req, res) => {
 const updatePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content } = req.body;
-    const userId = req.user.id;
+    const { content } = req.body;
+    const authorId = req.user.id;
 
     const post = await Post.findByPk(id);
     if (!post) {
       return res.status(404).json({ message: 'Post tidak ditemukan' });
     }
 
-    if (post.userId !== userId) {
+    if (post.authorId !== authorId) {
       return res.status(403).json({ message: 'Anda tidak berhak mengubah post ini' });
     }
 
-    await post.update({ title, content });
+    await post.update({ content });
     res.status(200).json({ message: 'Post berhasil diubah', post });
   } catch (error) {
     res.status(500).json({ message: 'Terjadi kesalahan', error: error.message });
@@ -83,14 +82,14 @@ const updatePost = async (req, res) => {
 const deletePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const authorId = req.user.id;
 
     const post = await Post.findByPk(id);
     if (!post) {
       return res.status(404).json({ message: 'Post tidak ditemukan' });
     }
 
-    if (post.userId !== userId) {
+    if (post.authorId !== authorId) {
       return res.status(403).json({ message: 'Anda tidak berhak menghapus post ini' });
     }
 

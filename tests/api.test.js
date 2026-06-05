@@ -16,15 +16,15 @@ describe('API Tests', () => {
 
     // Auth endpoints
     app.post('/api/auth/register', (req, res) => {
-      const { username, email, password } = req.body;
+      const { name, email, password } = req.body;
 
-      if (!username || !email || !password) {
+      if (!name || !email || !password) {
         return res.status(400).json({ message: 'Data tidak lengkap' });
       }
 
       res.status(201).json({
         message: 'User berhasil terdaftar',
-        user: { id: 1, username, email },
+        user: { id: 1, name, email },
       });
     });
 
@@ -36,7 +36,7 @@ describe('API Tests', () => {
       }
 
       const token = jwt.sign(
-        { id: 1, email, username: 'testuser' },
+        { id: 1, email, name: 'testuser' },
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
@@ -49,12 +49,13 @@ describe('API Tests', () => {
       res.status(200).json([
         {
           id: 1,
-          title: 'Welcome Post',
           content: 'This is a test post',
-          userId: 1,
+          authorId: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           User: {
             id: 1,
-            username: 'testuser',
+            name: 'testuser',
             email: 'test@example.com',
           },
         },
@@ -67,12 +68,13 @@ describe('API Tests', () => {
       if (id === '1') {
         return res.status(200).json({
           id: 1,
-          title: 'Welcome Post',
           content: 'This is a test post',
-          userId: 1,
+          authorId: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           User: {
             id: 1,
-            username: 'testuser',
+            name: 'testuser',
             email: 'test@example.com',
           },
         });
@@ -82,9 +84,9 @@ describe('API Tests', () => {
     });
 
     app.post('/api/posts', authenticateToken, (req, res) => {
-      const { title, content } = req.body;
+      const { content } = req.body;
 
-      if (!title || !content) {
+      if (!content) {
         return res.status(400).json({ message: 'Data tidak lengkap' });
       }
 
@@ -92,17 +94,18 @@ describe('API Tests', () => {
         message: 'Post berhasil dibuat',
         post: {
           id: 1,
-          title,
           content,
-          userId: req.user.id,
+          authorId: req.user.id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
       });
     });
 
     app.put('/api/posts/:id', authenticateToken, (req, res) => {
-      const { title, content } = req.body;
+      const { content } = req.body;
 
-      if (!title || !content) {
+      if (!content) {
         return res.status(400).json({ message: 'Data tidak lengkap' });
       }
 
@@ -110,9 +113,9 @@ describe('API Tests', () => {
         message: 'Post berhasil diubah',
         post: {
           id: req.params.id,
-          title,
           content,
-          userId: req.user.id,
+          authorId: req.user.id,
+          updatedAt: new Date().toISOString(),
         },
       });
     });
@@ -127,7 +130,7 @@ describe('API Tests', () => {
       const res = await request(app)
         .post('/api/auth/register')
         .send({
-          username: 'testuser',
+          name: 'testuser',
           email: 'test@example.com',
           password: 'password123',
         });
@@ -141,8 +144,7 @@ describe('API Tests', () => {
       const res = await request(app)
         .post('/api/auth/register')
         .send({
-          username: 'testuser',
-          // missing email and password
+          name: 'testuser',
         });
 
       expect(res.status).toBe(400);
@@ -166,7 +168,6 @@ describe('API Tests', () => {
         .post('/api/auth/login')
         .send({
           email: 'test@example.com',
-          // missing password
         });
 
       expect(res.status).toBe(400);
@@ -186,7 +187,7 @@ describe('API Tests', () => {
       const res = await request(app).get('/api/posts/1');
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty('title');
+      expect(res.body).toHaveProperty('content');
       expect(res.body.id).toBe(1);
     });
 
@@ -199,7 +200,7 @@ describe('API Tests', () => {
 
     it('should create a new post with token', async () => {
       const token = jwt.sign(
-        { id: 1, email: 'test@example.com', username: 'testuser' },
+        { id: 1, email: 'test@example.com', name: 'testuser' },
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
@@ -208,20 +209,19 @@ describe('API Tests', () => {
         .post('/api/posts')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          title: 'New Post',
           content: 'This is a new post',
         });
 
       expect(res.status).toBe(201);
       expect(res.body.message).toBe('Post berhasil dibuat');
-      expect(res.body.post).toHaveProperty('title');
+      expect(res.body.post).toHaveProperty('content');
+      expect(res.body.post).toHaveProperty('authorId');
     });
 
     it('should reject post creation without token', async () => {
       const res = await request(app)
         .post('/api/posts')
         .send({
-          title: 'New Post',
           content: 'This is a new post',
         });
 
@@ -230,7 +230,7 @@ describe('API Tests', () => {
 
     it('should update a post with valid token', async () => {
       const token = jwt.sign(
-        { id: 1, email: 'test@example.com', username: 'testuser' },
+        { id: 1, email: 'test@example.com', name: 'testuser' },
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
@@ -239,17 +239,17 @@ describe('API Tests', () => {
         .put('/api/posts/1')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          title: 'Updated Post',
           content: 'Updated content',
         });
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Post berhasil diubah');
+      expect(res.body.post).toHaveProperty('authorId');
     });
 
     it('should delete a post with valid token', async () => {
       const token = jwt.sign(
-        { id: 1, email: 'test@example.com', username: 'testuser' },
+        { id: 1, email: 'test@example.com', name: 'testuser' },
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
